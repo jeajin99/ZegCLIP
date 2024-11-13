@@ -8,7 +8,7 @@ import torch
 import torch.nn.functional as F
 from torch.nn import Dropout
 from torch import nn
-from timm.models.layers import drop, drop_path, trunc_normal_
+from timm.models.layers import drop, drop_path, trunc_nzormal_
 from mmseg.models.builder import BACKBONES
 
 from mmseg.models.backbones import ResNet
@@ -234,7 +234,7 @@ class VPTCLIPVisionTransformer(nn.Module):
         pos = torch.cat([cls_pos.reshape(1, 1, C), spatial_pos], dim=1)
         x = x + pos
         x = self.ln_pre(x)
-
+# 여기서 부터 다시 확인
         if self.total_d_layer >=0:
             # concat prompt
             x = torch.cat((

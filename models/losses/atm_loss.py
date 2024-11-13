@@ -13,20 +13,28 @@ class SegLossPlus(nn.Module):
                  num_classes,
                  dec_layers,
                  mask_weight=20.0,
-                 dice_weight=1.0,
+                 tversky_weight=1.0,  # Tversky 손실로 이름 변경
                  loss_weight=1.0,
-                 use_point=False):
+                 use_point=False,
+                 alpha=0.7,  # Tversky 손실을 위한 추가 파라미터
+                 beta=0.7):
         super(SegLossPlus, self).__init__()
-        weight_dict = {"loss_mask": mask_weight, "loss_dice": dice_weight}
+        
+        # Tversky 손실을 반영한 가중치 딕셔너리 업데이트
+        weight_dict = {"loss_mask": mask_weight, "loss_tversky": tversky_weight}
+        
         aux_weight_dict = {}
         for i in range(dec_layers - 1):
             aux_weight_dict.update({k + f"_{i}": v for k, v in weight_dict.items()})
         weight_dict.update(aux_weight_dict)
 
+        # SegPlusCriterion에 Tversky 손실의 alpha와 beta 파라미터 전달
         self.criterion = SegPlusCriterion(
             num_classes,
             weight_dict=weight_dict,
             losses=["masks"],
+            alpha=alpha,
+            beta=beta
         )
 
         self.loss_weight = loss_weight
@@ -36,7 +44,7 @@ class SegLossPlus(nn.Module):
                 label,
                 ignore_index=255,
                 ):
-        """Forward function."""
+        """Forward 함수."""
         
         self.ignore_index = ignore_index
         targets = self.prepare_targets(label)
@@ -46,7 +54,7 @@ class SegLossPlus(nn.Module):
             if k in self.criterion.weight_dict:
                 losses[k] = losses[k] * self.criterion.weight_dict[k] * self.loss_weight
             else:
-                # remove this loss if not specified in `weight_dict`
+                # `weight_dict`에 명시되지 않은 손실은 제거
                 losses.pop(k)
 
         return losses
